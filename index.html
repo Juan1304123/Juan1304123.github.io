@@ -302,7 +302,10 @@
                         <label class="form-label">Monto:</label>
                         <input type="number" class="form-control monto" required step="0.01">
                     </div>
-                    
+                    <div class="mb-3">
+            <label class="form-label">Detalles:</label>
+            <input type="text" class="form-control detalles" placeholder="Detalles de la operación">
+             </div>
                     <button type="button" class="btn btn-danger btn-sm eliminarOperacion">Eliminar</button>
                 </div>
             `;
@@ -575,12 +578,14 @@
                     const tipoOperacion = op.querySelector('.tipoOperacion').value;
                     const entidad = op.querySelector('.entidad').value;
                     const monto = op.querySelector('.monto').value;
+                    const detalles = op.querySelector('.detalles').value; // Obteniendo el valor del campo detalles
+
 
                     if (tipoOperacion && entidad && monto) {
                         multioperacionesData.push({
                             codCliente: currentClientId || generateClientId(),
                             nombreDni: document.getElementById('nombreDni').value,
-                            detalles: `Multioperación ${index + 1}`,
+                            detalles: detalles || `Multioperación ${index + 1}`,
                             fecha: new Date().toLocaleString('es-ES'),
                             encargado: document.getElementById('encargado').value,
                             tipoOperacion: tipoOperacion,
