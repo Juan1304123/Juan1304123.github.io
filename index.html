@@ -72,17 +72,13 @@
                                             <input type="text" class="form-control" id="codCliente" name="codCliente" readonly>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="nombreDni" class="form-label">NOMBRE/DNI:</label>
-                                            <input type="text" class="form-control" id="nombreDni" name="nombreDni" required>
-                                        </div>
-                                        <div class="mb-3">
                                             <label for="detalles" class="form-label">DETALLES:</label>
                                             <input type="text" class="form-control" id="detalles" name="detalles">
                                         </div>
                                         <div class="mb-3">
                                             <label for="fecha" class="form-label">FECHA:</label>
                                             <input type="text" class="form-control" id="fecha" name="fecha" readonly>
-                                        </div>
+                                        </div>                                        
                                     </div>
                                 </div>
                                 <button type="button" class="btn btn-primary w-100" onclick="nextPage()">Siguiente</button>
@@ -306,6 +302,7 @@
                         <label class="form-label">Monto:</label>
                         <input type="number" class="form-control monto" required step="0.01">
                     </div>
+                    
                     <button type="button" class="btn btn-danger btn-sm eliminarOperacion">Eliminar</button>
                 </div>
             `;
@@ -328,7 +325,6 @@
                 if (form.checkValidity()) {
                     const newData = {
                         codCliente: document.getElementById('codCliente').value,
-                        nombreDni: document.getElementById('nombreDni').value,
                         detalles: document.getElementById('detalles').value,
                         fecha: document.getElementById('fecha').value,
                         encargado: document.getElementById('encargado').value,
