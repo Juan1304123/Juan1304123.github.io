@@ -78,7 +78,7 @@
                                         <div class="mb-3">
                                             <label for="fecha" class="form-label">FECHA:</label>
                                             <input type="text" class="form-control" id="fecha" name="fecha" readonly>
-                                        </div>                                        
+                                        </div>
                                     </div>
                                 </div>
                                 <button type="button" class="btn btn-primary w-100" onclick="nextPage()">Siguiente</button>
@@ -302,10 +302,11 @@
                         <label class="form-label">Monto:</label>
                         <input type="number" class="form-control monto" required step="0.01">
                     </div>
-                    <div class="mb-3">
-            <label class="form-label">Detalles:</label>
-            <input type="text" class="form-control detalles" placeholder="Detalles de la operación">
-             </div>
+                                <div class="mb-3">
+                <label class="form-label">Detalles:</label>
+                <input type="text" class="form-control detalles" required>
+                    </div>
+
                     <button type="button" class="btn btn-danger btn-sm eliminarOperacion">Eliminar</button>
                 </div>
             `;
@@ -326,18 +327,27 @@
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
                 if (form.checkValidity()) {
-                    const newData = {
-                        codCliente: document.getElementById('codCliente').value,
-                        detalles: document.getElementById('detalles').value,
-                        fecha: document.getElementById('fecha').value,
-                        encargado: document.getElementById('encargado').value,
-                        tipoOperacion: document.getElementById('tipoOperacion').value,
-                        entidad: document.getElementById('entidad').value,
-                        montoProducto: document.getElementById('montoProducto').value,
-                        montoDado: document.getElementById('montoDado').value,
-                        vuelto: document.getElementById('vuelto').value
-                        
-                    };
+
+
+                    const selectedEntidad = document.getElementById('entidad').value;
+            let comision = 0;
+
+            if (selectedEntidad === 'YAPE' || selectedEntidad === 'PLIN') {
+                comision = 1.00; // Definiendo la comisión
+            }
+
+            const newData = {
+                codCliente: document.getElementById('codCliente').value,
+                detalles: document.getElementById('detalles').value,
+                fecha: document.getElementById('fecha').value,
+                encargado: document.getElementById('encargado').value,
+                tipoOperacion: document.getElementById('tipoOperacion').value,
+                entidad: selectedEntidad,
+                montoProducto: (parseFloat(document.getElementById('montoProducto').value) - comision).toFixed(2), // Aplicar la comisión aquí
+                montoDado: document.getElementById('montoDado').value,
+                vuelto: document.getElementById('vuelto').value,
+                comision: comision // Guardar el valor de la comisión
+            };
                     
                     datos.push(newData);
                     localStorage.setItem('datosExcel', JSON.stringify(datos));
@@ -396,6 +406,7 @@
                     // Guardar monto como negativo
                     formattedDato.montoProducto = -Math.abs(parseFloat(formattedDato.montoProducto));
                 }
+                formattedDato.comision = dato.comision; // Incluir la comisión aquí
                 return formattedDato;
             });
 
@@ -578,14 +589,13 @@
                     const tipoOperacion = op.querySelector('.tipoOperacion').value;
                     const entidad = op.querySelector('.entidad').value;
                     const monto = op.querySelector('.monto').value;
-                    const detalles = op.querySelector('.detalles').value; // Obteniendo el valor del campo detalles
+                    const detalles = op.querySelector('.detalles').value; // Capturar el valor de detalles
 
 
                     if (tipoOperacion && entidad && monto) {
                         multioperacionesData.push({
                             codCliente: currentClientId || generateClientId(),
-                            nombreDni: document.getElementById('nombreDni').value,
-                            detalles: detalles || `Multioperación ${index + 1}`,
+                            detalles: detalles,
                             fecha: new Date().toLocaleString('es-ES'),
                             encargado: document.getElementById('encargado').value,
                             tipoOperacion: tipoOperacion,
@@ -737,31 +747,31 @@
             const denominaciones = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
             let billetesMonedasData = [
                 {denominacion: 200, cantidad: 0},
-                {denominacion: 100, cantidad: 93},
-                {denominacion: 50, cantidad: 108},
-                {denominacion: 20, cantidad: 27},
-                {denominacion: 10, cantidad: 1},
-                {denominacion: 5, cantidad: 1},
-                {denominacion: 2, cantidad: 54},
-                {denominacion: 1, cantidad: 74},
-                {denominacion: 0.5, cantidad: 89},
-                {denominacion: 0.2, cantidad: 246},
-                {denominacion: 0.1, cantidad: 521}
+                {denominacion: 100, cantidad: 0},
+                {denominacion: 50, cantidad: 0},
+                {denominacion: 20, cantidad: 0},
+                {denominacion: 10, cantidad: 0},
+                {denominacion: 5, cantidad: 0},
+                {denominacion: 2, cantidad: 0},
+                {denominacion: 1, cantidad: 0},
+                {denominacion: 0.5, cantidad: 0},
+                {denominacion: 0.2, cantidad: 0},
+                {denominacion: 0.1, cantidad: 0}
             ];
     
             let retiroBancoData = [
                 {denominacion: 200, cantidad: 0},
-                {denominacion: 100, cantidad: 84},
-                {denominacion: 50, cantidad: 100},
-                {denominacion: 20, cantidad: 17},
-                {denominacion: 10, cantidad: 1}
+                {denominacion: 100, cantidad: 0},
+                {denominacion: 50, cantidad: 0},
+                {denominacion: 20, cantidad: 0},
+                {denominacion: 10, cantidad: 0}
             ];
     
             let cajaChicaData = [
                 {denominacion: 200, cantidad: 0},
-                {denominacion: 100, cantidad: 9},
-                {denominacion: 50, cantidad: 8},
-                {denominacion: 20, cantidad: 10},
+                {denominacion: 100, cantidad: 0},
+                {denominacion: 50, cantidad: 0},
+                {denominacion: 20, cantidad: 0},
                 {denominacion: 10, cantidad: 0}
             ];
     
@@ -777,6 +787,8 @@
                     cantidadInput.className = 'form-control form-control-sm';
                     cantidadInput.value = item.cantidad;
                     cantidadInput.min = 0;
+
+                    
                     cantidadInput.addEventListener('input', (e) => {
                         data[index].cantidad = parseInt(e.target.value) || 0;
                         actualizarTotales();
@@ -807,8 +819,8 @@
             }
     
             document.addEventListener('DOMContentLoaded', function() {
-                document.getElementById('ingresos').value = 18016.40;
-                document.getElementById('egresos').value = 2433.60;
+                document.getElementById('ingresos').value = 0;
+                document.getElementById('egresos').value = 0;
                 
                 document.getElementById('ingresos').addEventListener('input', actualizarTotales);
                 document.getElementById('egresos').addEventListener('input', actualizarTotales);
