@@ -58,6 +58,7 @@
                         </li>
                     </ul>
                 </nav>
+                <button id="cambiarTurno" class="btn btn-secondary mt-3">Cambiar Turno (Actual: Mañana)</button>
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active" id="registro" role="tabpanel" aria-labelledby="registro-tab">
                         <form id="divaly-form" class="mt-3">
@@ -195,10 +196,41 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script>
+        let turnoActual = "Mañana"; // Turno inicial
         let currentPage = 1;
         let lastClientId = 0;
         let datos = JSON.parse(localStorage.getItem('datosExcel')) || [];
         let currentClientId = null;
+
+        document.getElementById('cambiarTurno').addEventListener('click', function() {
+    // Cambia entre turno de "Mañana" y "Tarde"
+    turnoActual = turnoActual === "Mañana" ? "Tarde" : "Mañana";
+    this.textContent = `Cambiar Turno (Actual: ${turnoActual})`; // Actualiza el texto del botón
+
+    // Reinicia los datos del turno anterior
+    reiniciarDatos();
+});
+
+
+    function reiniciarDatos() {
+    // Reiniciar todos los campos del formulario
+    const form = document.getElementById('divaly-form');
+    form.reset();
+
+    // Reiniciar los totales
+    document.getElementById('ingresos').value = 0;
+    document.getElementById('egresos').value = 0;
+
+    // Reiniciar las tablas si es necesario y cualquier otra lógica personalizada
+    // Ejemplo: reiniciar cantidades en tablas de cajas chicas
+    billetesMonedasData.forEach(item => item.cantidad = 0);
+    retiroBancoData.forEach(item => item.cantidad = 0);
+    todasLasCajasChicas.forEach(cajaChica => {
+        cajaChica.forEach(item => item.cantidad = 0);
+    });
+
+    actualizarTotalesGenerales(); // Llama a la función que recalcula totales
+}
 
         function nextPage() {
             document.getElementById(`page${currentPage}`).classList.remove('active');
