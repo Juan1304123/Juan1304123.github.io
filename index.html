@@ -382,7 +382,7 @@
             document.getElementById('montoProducto').addEventListener('input', calcularVuelto);
             document.getElementById('montoDado').addEventListener('input', calcularVuelto);
 
-            document.getElementById('exportExcel').addEventListener('click', function() {
+                document.getElementById('exportExcel').addEventListener('click', function() {
     Swal.fire({
         title: 'Nombre del archivo',
         input: 'text',
@@ -403,7 +403,6 @@
             const formattedData = datos.map(dato => {
                 const formattedDato = { ...dato };
                 if (formattedDato.tipoOperacion === 'Retiro') {
-                    // Guardar monto como negativo
                     formattedDato.montoProducto = -Math.abs(parseFloat(formattedDato.montoProducto));
                 }
                 formattedDato.comision = dato.comision; // Incluir la comisión aquí
@@ -417,36 +416,54 @@
                 total: parseFloat(document.getElementById('total').value),
             };
 
-            // Crea una hoja para datos de caja
+            // Crear una hoja de datos de caja
             const wsCaja = XLSX.utils.json_to_sheet([cajaData]);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, wsCaja, "Caja");
 
-            const ws = XLSX.utils.json_to_sheet(formattedData);
-            XLSX.utils.book_append_sheet(wb, ws, "Datos");
+            // Crear hoja para los datos de las tablas
+            const wsDatos = XLSX.utils.json_to_sheet(formattedData);
+            XLSX.utils.book_append_sheet(wb, wsDatos, "Datos Registro");
 
-            // Aplicar formato rojo para celdas de retiro
-            formattedData.forEach((dato, index) => {
-                if (dato.tipoOperacion === 'Retiro') {
-                    const cellAddress = `F${index + 2}`; // Ajusta 'H' según la columna donde está el monto
-                    ws[cellAddress].s = {
-                        fill: {
-                            fgColor: { rgb: "FFCCCC" } // Color de fondo rojo claro
-                        },
-                        font: {
-                            color: { rgb: "FF0000" } // Texto rojo
-                        }
+            // Aquí comienzas a construir la segunda hoja
+            const wsCajas = XLSX.utils.json_to_sheet(billetesMonedasData.map(item => {
+                return {
+                    Denominacion: item.denominacion,
+                    Cantidad: item.cantidad,
+                    Total: (item.denominacion * item.cantidad).toFixed(2)
+                };
+            }));
+            XLSX.utils.book_append_sheet(wb, wsCajas, "Billetes y Monedas");
+
+            // Agregar hoja para Retiro Banco
+            const wsRetiro = XLSX.utils.json_to_sheet(retiroBancoData.map(item => {
+                return {
+                    Denominacion: item.denominacion,
+                    Cantidad: item.cantidad,
+                    Total: (item.denominacion * item.cantidad).toFixed(2)
+                };
+            }));
+            XLSX.utils.book_append_sheet(wb, wsRetiro, "Retiro Banco");
+
+            // Agregar hojas para cada Caja Chica
+            todasLasCajasChicas.forEach((cajaChica, index) => {
+                const wsCajaChica = XLSX.utils.json_to_sheet(cajaChica.map(item => {
+                    return {
+                        Denominacion: item.denominacion,
+                        Cantidad: item.cantidad,
+                        Total: (item.denominacion * item.cantidad).toFixed(2)
                     };
-                }
+                }));
+                XLSX.utils.book_append_sheet(wb, wsCajaChica, `Caja Chica ${index + 1}`);
             });
 
             // Exportar todo
             XLSX.writeFile(wb, `${result.value}.xlsx`);
-
             Swal.fire('¡Guardado!', 'El archivo Excel ha sido creado con todos los registros.', 'success');
         }
     });
 });
+
             document.getElementById('nuevaOperacion').addEventListener('click', function() {
                 if (currentClientId) {
                     document.getElementById('codCliente').value = currentClientId;
@@ -736,6 +753,11 @@
                                     <!-- Filas generadas dinámicamente -->
                                 </tbody>
                             </table>
+                            <div class="container mt-3" id="cajasChicasContainer">
+                                <h3>Cajas Chicas</h3>
+                                <!-- Aquí se añadirán dinámicamente las nuevas cajas chicas -->
+                            </div>
+                            <button id="agregarCajaChica" class="btn btn-primary mt-3">Agregar Caja Chica</button>
                         </div>
                     </div>
                 </div>
@@ -774,6 +796,8 @@
                 {denominacion: 20, cantidad: 0},
                 {denominacion: 10, cantidad: 0}
             ];
+            let todasLasCajasChicas = []; // Array para almacenar todas las cajas chicas
+
     
             function actualizarTabla(tableId, data) {
                 const tbody = document.getElementById(tableId);
@@ -828,7 +852,154 @@
                 actualizarTotales();
             });
 
-            
+document.getElementById('agregarCajaChica').addEventListener('click', function() {
+    agregarCajaChica();
+});
+
+let cajaChicaCount = 0; // Contador para las cajas chicas
+
+function agregarCajaChica() {
+    cajaChicaCount++; // Incrementar el contador
+
+    // Crear un nuevo div para la nueva caja chica
+    const cajaChicaDiv = document.createElement('div');
+    cajaChicaDiv.className = 'card mb-3';
+
+    // Construir el HTML para la nueva caja chica
+    cajaChicaDiv.innerHTML = `
+        <div class="card-header">Caja Chica ${cajaChicaCount}</div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Denominación</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="cajaChicaBody${cajaChicaCount}">
+                    <tr>
+                        <td>200</td>
+                        <td><input type="number" class="form-control cantidad" data-denominacion="200" value="0" min="0"></td>
+                        <td class="total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>100</td>
+                        <td><input type="number" class="form-control cantidad" data-denominacion="100" value="0" min="0"></td>
+                        <td class="total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>50</td>
+                        <td><input type="number" class="form-control cantidad" data-denominacion="50" value="0" min="0"></td>
+                        <td class="total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>20</td>
+                        <td><input type="number" class="form-control cantidad" data-denominacion="20" value="0" min="0"></td>
+                        <td class="total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td><input type="number" class="form-control cantidad" data-denominacion="10" value="0" min="0"></td>
+                        <td class="total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="mb-3">
+                <label class="form-label">Total Caja Chica ${cajaChicaCount}</label>
+                <input type="number" class="form-control" id="totalCajaChica${cajaChicaCount}" value="0" readonly>
+            </div>
+        </div>
+    `;
+
+    // Añadir la nueva caja chica al contenedor de cajas chicas
+    document.getElementById('cajasChicasContainer').appendChild(cajaChicaDiv);
+
+    // Agregar eventos a los campos de cantidad
+    cajaChicaDiv.querySelectorAll('.cantidad').forEach(input => {
+        input.addEventListener('input', function() {
+            calcularTotalCajaChica(cajaChicaCount);
+        });
+    });
+}
+
+// Calcular el total de cada caja chica
+function calcularTotalCajaChica(index) {
+    const cantidadInputs = document.querySelectorAll(`#cajaChicaBody${index} .cantidad`);
+    let totalCaja = 0;
+
+    cantidadInputs.forEach(input => {
+        const denominacion = parseInt(input.dataset.denominacion);
+        const cantidad = parseInt(input.value) || 0;
+        totalCaja += denominacion * cantidad;
+
+        // Actualizar el total en la tabla
+        const totalCell = input.closest('tr').querySelector('.total');
+        totalCell.textContent = (denominacion * cantidad).toFixed(2); // Actualiza el total por fila
+    });
+
+    // Actualizar el total general para la caja chica
+    document.getElementById(`totalCajaChica${index}`).value = totalCaja.toFixed(2);
+}
+function actualizarTotalesGenerales() {
+    // Inicializa variables para almacenar totales
+    let totalBilletesMonedas = 0;
+    let totalRetiroBanco = 0;
+    let totalCajasChicas = 0;
+
+    // Calcular total billetes y monedas
+    billetesMonedasData.forEach(item => {
+        totalBilletesMonedas += item.denominacion * item.cantidad;
+    });
+
+    // Actualiza el total en la tabla de Billetes y Monedas
+    document.getElementById('billetes').value = totalBilletesMonedas.toFixed(2);
+
+    // Calcular total para Retiro Banco
+    retiroBancoData.forEach(item => {
+        totalRetiroBanco += item.denominacion * item.cantidad;
+    });
+
+    // Actualiza el total en la tabla de Retiro Banco
+    document.getElementById('totalRetiroCaja').value = totalRetiroBanco.toFixed(2);
+
+    // Calcular total de Todas las Cajas Chicas
+    for (let i = 1; i <= cajaChicaCount; i++) { // usa el contador de cajas chicas
+        const totalCajaChica = parseFloat(document.getElementById(`totalCajaChica${i}`).value) || 0;
+        totalCajasChicas += totalCajaChica;
+    }
+
+    // Actualiza el total de Cajas Chicas
+    document.getElementById('totalCajaChica').value = totalCajasChicas.toFixed(2);
+
+    // Calcular total general ingresos y egresos
+    const ingresos = parseFloat(document.getElementById('ingresos').value) || 0;
+    const egresos = parseFloat(document.getElementById('egresos').value) || 0;
+    const totalGeneral = ingresos - egresos;
+
+    // Actualiza el total general
+    document.getElementById('total').value = totalGeneral.toFixed(2);
+    document.getElementById('totalResumen').value = totalGeneral.toFixed(2);
+}
+
+document.querySelectorAll('.cantidad').forEach(input => {
+    input.addEventListener('input', function () {
+        actualizarTotalesGenerales(); // Llama a la función de actualización
+    });
+});
+
+document.querySelectorAll('#retiroBancoBody .cantidad').forEach(input => {
+    input.addEventListener('input', function () {
+        actualizarTotalesGenerales(); // Llama a la función de actualización
+    });
+});
+
+cajaChicaDiv.querySelectorAll('.cantidad').forEach(input => {
+    input.addEventListener('input', function () {
+        calcularTotalCajaChica(cajaChicaCount); // Puedes mantener esta función también
+        actualizarTotalesGenerales(); // Llama a la función de actualización
+    });
+});
         </script>
     </body>
     </html>
