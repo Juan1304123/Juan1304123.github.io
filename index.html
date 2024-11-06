@@ -138,6 +138,11 @@
                                             <label for="vuelto" class="form-label">VUELTO:</label>
                                             <input type="number" class="form-control" id="vuelto" name="vuelto" readonly step="0.01">
                                         </div>
+                                        <!-- Añade aquí el nuevo campo de comisión -->
+                                        <div class="mb-3">
+                                            <label for="comision" class="form-label">COMISIÓN:</label>
+                                            <input type="number" class="form-control" id="comision" name="comision" readonly step="0.01">
+                                        </div>
                                     </div>
                                 </div>
                                 <button type="button" class="btn btn-secondary w-100 mb-2" onclick="prevPage()">Anterior</button>
@@ -262,11 +267,20 @@
         }
 
         function calcularVuelto() {
-            const montoProducto = parseFloat(document.getElementById('montoProducto').value) || 0;
-            const montoDado = parseFloat(document.getElementById('montoDado').value) || 0;
-            const vuelto = montoDado - montoProducto;
-            document.getElementById('vuelto').value = vuelto.toFixed(2);
-        }
+    const montoProducto = parseFloat(document.getElementById('montoProducto').value) || 0;
+    const montoDado = parseFloat(document.getElementById('montoDado').value) || 0;
+    const entidad = document.getElementById('entidad').value;
+    let comision = 0;
+
+    // Aplica comisión si es YAPE o PLIN
+    if (entidad === 'YAPE' || entidad === 'PLIN') {
+        comision = 1.00;
+    }
+
+    const vuelto = montoDado - montoProducto - comision;
+    document.getElementById('vuelto').value = vuelto.toFixed(2);
+    document.getElementById('comision').value = comision.toFixed(2);
+}
 
         function actualizarSelectClientes() {
             const selectModificar = document.getElementById('selectClienteModificar');
@@ -357,49 +371,47 @@
 
             const form = document.getElementById('divaly-form');
             form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                if (form.checkValidity()) {
+    e.preventDefault();
+    if (form.checkValidity()) {
+        const selectedEntidad = document.getElementById('entidad').value;
+        let comision = 0;
 
+        if (selectedEntidad === 'YAPE' || selectedEntidad === 'PLIN') {
+            comision = 1.00; // Definiendo la comisión
+        }
 
-                    const selectedEntidad = document.getElementById('entidad').value;
-            let comision = 0;
-
-            if (selectedEntidad === 'YAPE' || selectedEntidad === 'PLIN') {
-                comision = 1.00; // Definiendo la comisión
+        const newData = {
+            codCliente: document.getElementById('codCliente').value,
+            detalles: document.getElementById('detalles').value,
+            fecha: document.getElementById('fecha').value,
+            encargado: document.getElementById('encargado').value,
+            tipoOperacion: document.getElementById('tipoOperacion').value,
+            entidad: selectedEntidad,
+            montoProducto: parseFloat(document.getElementById('montoProducto').value).toFixed(2), // Sin la comisión                
+            montoDado: document.getElementById('montoDado').value,
+            vuelto: document.getElementById('vuelto').value,
+            comision: comision.toFixed(2)
+        };
+        
+        datos.push(newData);
+        localStorage.setItem('datosExcel', JSON.stringify(datos));
+        
+        actualizarGestionCaja(newData);
+        Swal.fire({
+            title: '¡Éxito!',
+            text: 'Los datos se han guardado correctamente.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                resetForm();
+                actualizarSelectClientes();
             }
-
-            const newData = {
-                codCliente: document.getElementById('codCliente').value,
-                detalles: document.getElementById('detalles').value,
-                fecha: document.getElementById('fecha').value,
-                encargado: document.getElementById('encargado').value,
-                tipoOperacion: document.getElementById('tipoOperacion').value,
-                entidad: selectedEntidad,
-                montoProducto: parseFloat(document.getElementById('montoProducto').value).toFixed(2), // Sin la comisión                
-                montoDado: document.getElementById('montoDado').value,
-                vuelto: document.getElementById('vuelto').value,
-            };
-                    
-                    datos.push(newData);
-                    localStorage.setItem('datosExcel', JSON.stringify(datos));
-                    // Al final del bloque de envío
-                    actualizarGestionCaja(newData);
-                    Swal.fire({
-                        
-                        title: '¡Éxito!',
-                        text: 'Los datos se han guardado correctamente.',
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            resetForm();
-                            actualizarSelectClientes();
-                        }
-                    });
-                } else {
-                    form.reportValidity();
-                }
-            });
+        });
+    } else {
+        form.reportValidity();
+    }
+});
             function actualizarGestionCaja(data) {
     const ingresos = parseFloat(data.montoProducto) > 0 ? parseFloat(data.montoProducto) : 0;
     const egresos = parseFloat(data.montoProducto) < 0 ? Math.abs(parseFloat(data.montoProducto)) : 0;
@@ -413,7 +425,7 @@
             document.getElementById('montoProducto').addEventListener('input', calcularVuelto);
             document.getElementById('montoDado').addEventListener('input', calcularVuelto);
 
-                document.getElementById('exportExcel').addEventListener('click', function() {
+            document.getElementById('exportExcel').addEventListener('click', function() {
     Swal.fire({
         title: 'Nombre del archivo',
         input: 'text',
@@ -436,64 +448,22 @@
                 if (formattedDato.tipoOperacion === 'Retiro') {
                     formattedDato.montoProducto = -Math.abs(parseFloat(formattedDato.montoProducto));
                 }
+                formattedDato.comision = parseFloat(formattedDato.comision) || 0;
                 return formattedDato;
             });
 
-            // Datos de Caja
-            const cajaData = {
-                ingresos: parseFloat(document.getElementById('ingresos').value),
-                egresos: parseFloat(document.getElementById('egresos').value),
-                total: parseFloat(document.getElementById('total').value),
-            };
-
-            // Crear una hoja de datos de caja
-            const wsCaja = XLSX.utils.json_to_sheet([cajaData]);
+            // Crear el libro de Excel con los datos
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, wsCaja, "Caja");
-
-            // Crear hoja para los datos de las tablas
-            const wsDatos = XLSX.utils.json_to_sheet(formattedData);
-            XLSX.utils.book_append_sheet(wb, wsDatos, "Datos Registro");
-
-            // Aquí comienzas a construir la segunda hoja
-            const wsCajas = XLSX.utils.json_to_sheet(billetesMonedasData.map(item => {
-                return {
-                    Denominacion: item.denominacion,
-                    Cantidad: item.cantidad,
-                    Total: (item.denominacion * item.cantidad).toFixed(2)
-                };
-            }));
-            XLSX.utils.book_append_sheet(wb, wsCajas, "Billetes y Monedas");
-
-            // Agregar hoja para Retiro Banco
-            const wsRetiro = XLSX.utils.json_to_sheet(retiroBancoData.map(item => {
-                return {
-                    Denominacion: item.denominacion,
-                    Cantidad: item.cantidad,
-                    Total: (item.denominacion * item.cantidad).toFixed(2)
-                };
-            }));
-            XLSX.utils.book_append_sheet(wb, wsRetiro, "Retiro Banco");
-
-            // Agregar hojas para cada Caja Chica
-            todasLasCajasChicas.forEach((cajaChica, index) => {
-                const wsCajaChica = XLSX.utils.json_to_sheet(cajaChica.map(item => {
-                    return {
-                        Denominacion: item.denominacion,
-                        Cantidad: item.cantidad,
-                        Total: (item.denominacion * item.cantidad).toFixed(2)
-                    };
-                }));
-                XLSX.utils.book_append_sheet(wb, wsCajaChica, `Caja Chica ${index + 1}`);
-            });
-
-            // Exportar todo
+            const ws = XLSX.utils.json_to_sheet(formattedData);
+            XLSX.utils.book_append_sheet(wb, ws, "Datos");
+            
+            // Guardar el archivo
             XLSX.writeFile(wb, `${result.value}.xlsx`);
-            Swal.fire('¡Guardado!', 'El archivo Excel ha sido creado con todos los registros.', 'success');
+            
+            Swal.fire('¡Guardado!', 'El archivo Excel ha sido creado.', 'success');
         }
     });
 });
-
             document.getElementById('nuevaOperacion').addEventListener('click', function() {
                 if (currentClientId) {
                     document.getElementById('codCliente').value = currentClientId;
@@ -878,6 +848,9 @@
                 
                 document.getElementById('ingresos').addEventListener('input', actualizarTotales);
                 document.getElementById('egresos').addEventListener('input', actualizarTotales);
+                document.getElementById('entidad').addEventListener('change', calcularVuelto);
+                document.getElementById('montoProducto').addEventListener('input', calcularVuelto);
+                document.getElementById('montoDado').addEventListener('input', calcularVuelto);
     
                 actualizarTotales();
             });
