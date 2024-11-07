@@ -371,61 +371,76 @@
 
             const form = document.getElementById('divaly-form');
             form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    if (form.checkValidity()) {
-        const selectedEntidad = document.getElementById('entidad').value;
-        let comision = 0;
+                e.preventDefault();
+                if (form.checkValidity()) {
 
-        if (selectedEntidad === 'YAPE' || selectedEntidad === 'PLIN') {
-            comision = 1.00; // Definiendo la comisión
-        }
 
-        const newData = {
-            codCliente: document.getElementById('codCliente').value,
-            detalles: document.getElementById('detalles').value,
-            fecha: document.getElementById('fecha').value,
-            encargado: document.getElementById('encargado').value,
-            tipoOperacion: document.getElementById('tipoOperacion').value,
-            entidad: selectedEntidad,
-            montoProducto: parseFloat(document.getElementById('montoProducto').value).toFixed(2), // Sin la comisión                
-            montoDado: document.getElementById('montoDado').value,
-            vuelto: document.getElementById('vuelto').value,
-            comision: comision.toFixed(2)
-        };
-        
-        datos.push(newData);
-        localStorage.setItem('datosExcel', JSON.stringify(datos));
-        
-        actualizarGestionCaja(newData);
-        Swal.fire({
-            title: '¡Éxito!',
-            text: 'Los datos se han guardado correctamente.',
-            icon: 'success',
-            confirmButtonText: 'OK'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                resetForm();
-                actualizarSelectClientes();
+                    const selectedEntidad = document.getElementById('entidad').value;
+            let comision = 0;
+
+            if (selectedEntidad === 'YAPE' || selectedEntidad === 'PLIN') {
+                comision = 1.00; // Definiendo la comisión
             }
-        });
-    } else {
-        form.reportValidity();
-    }
-});
-            function actualizarGestionCaja(data) {
-    const ingresos = parseFloat(data.montoProducto) > 0 ? parseFloat(data.montoProducto) : 0;
-    const egresos = parseFloat(data.montoProducto) < 0 ? Math.abs(parseFloat(data.montoProducto)) : 0;
 
-    // Sumar a los totales existentes
-    document.getElementById('ingresos').value = (parseFloat(document.getElementById('ingresos').value) + ingresos).toFixed(2);
-    document.getElementById('egresos').value = (parseFloat(document.getElementById('egresos').value) + egresos).toFixed(2);
-    actualizarTotales(); // Recalcular totales
+            const tipoOperacion = document.getElementById('tipoOperacion').value;
+let montoProducto = parseFloat(document.getElementById('montoProducto').value).toFixed(2);
+
+// Si la operación es "Retiro", convertir el monto a negativo
+if (tipoOperacion === 'Retiro') {
+    montoProducto = (-Math.abs(montoProducto)).toFixed(2); // Aseguramos que el monto sea negativo
 }
+
+            const newData = {
+                codCliente: document.getElementById('codCliente').value,
+                detalles: document.getElementById('detalles').value,
+                fecha: document.getElementById('fecha').value,
+                encargado: document.getElementById('encargado').value,
+                tipoOperacion: document.getElementById('tipoOperacion').value,
+                entidad: selectedEntidad,
+                montoProducto: parseFloat(document.getElementById('montoProducto').value).toFixed(2), // Sin la comisión                
+                montoDado: document.getElementById('montoDado').value,
+                vuelto: document.getElementById('vuelto').value,
+            };
+                    
+                    datos.push(newData);
+                    localStorage.setItem('datosExcel', JSON.stringify(datos));
+                    // Al final del bloque de envío
+                    actualizarGestionCaja(newData);
+                    Swal.fire({
+                        
+                        title: '¡Éxito!',
+                        text: 'Los datos se han guardado correctamente.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            resetForm();
+                            actualizarSelectClientes();
+                        }
+                    });
+                } else {
+                    form.reportValidity();
+                }
+            });
+            function actualizarGestionCaja(data) {
+    const tipoOperacion = data.tipoOperacion;
+    const montoProducto = parseFloat(data.montoProducto);
+
+    // Si es un retiro, se suma el valor a egresos
+    if (tipoOperacion === 'Retiro') {
+        document.getElementById('egresos').value = (parseFloat(document.getElementById('egresos').value) + Math.abs(montoProducto)).toFixed(2);
+    } else {
+        document.getElementById('ingresos').value = (parseFloat(document.getElementById('ingresos').value) + montoProducto).toFixed(2);
+    }
+
+    actualizarTotales(); // Recalcular totales después de la actualización
+}
+
 
             document.getElementById('montoProducto').addEventListener('input', calcularVuelto);
             document.getElementById('montoDado').addEventListener('input', calcularVuelto);
 
-            document.getElementById('exportExcel').addEventListener('click', function() {
+                document.getElementById('exportExcel').addEventListener('click', function() {
     Swal.fire({
         title: 'Nombre del archivo',
         input: 'text',
@@ -448,22 +463,64 @@
                 if (formattedDato.tipoOperacion === 'Retiro') {
                     formattedDato.montoProducto = -Math.abs(parseFloat(formattedDato.montoProducto));
                 }
-                formattedDato.comision = parseFloat(formattedDato.comision) || 0;
                 return formattedDato;
             });
 
-            // Crear el libro de Excel con los datos
+            // Datos de Caja
+            const cajaData = {
+                ingresos: parseFloat(document.getElementById('ingresos').value),
+                egresos: parseFloat(document.getElementById('egresos').value),
+                total: parseFloat(document.getElementById('total').value),
+            };
+
+            // Crear una hoja de datos de caja
+            const wsCaja = XLSX.utils.json_to_sheet([cajaData]);
             const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(formattedData);
-            XLSX.utils.book_append_sheet(wb, ws, "Datos");
-            
-            // Guardar el archivo
+            XLSX.utils.book_append_sheet(wb, wsCaja, "Caja");
+
+            // Crear hoja para los datos de las tablas
+            const wsDatos = XLSX.utils.json_to_sheet(formattedData);
+            XLSX.utils.book_append_sheet(wb, wsDatos, "Datos Registro");
+
+            // Aquí comienzas a construir la segunda hoja
+            const wsCajas = XLSX.utils.json_to_sheet(billetesMonedasData.map(item => {
+                return {
+                    Denominacion: item.denominacion,
+                    Cantidad: item.cantidad,
+                    Total: (item.denominacion * item.cantidad).toFixed(2)
+                };
+            }));
+            XLSX.utils.book_append_sheet(wb, wsCajas, "Billetes y Monedas");
+
+            // Agregar hoja para Retiro Banco
+            const wsRetiro = XLSX.utils.json_to_sheet(retiroBancoData.map(item => {
+                return {
+                    Denominacion: item.denominacion,
+                    Cantidad: item.cantidad,
+                    Total: (item.denominacion * item.cantidad).toFixed(2)
+                };
+            }));
+            XLSX.utils.book_append_sheet(wb, wsRetiro, "Retiro Banco");
+
+            // Agregar hojas para cada Caja Chica
+            todasLasCajasChicas.forEach((cajaChica, index) => {
+                const wsCajaChica = XLSX.utils.json_to_sheet(cajaChica.map(item => {
+                    return {
+                        Denominacion: item.denominacion,
+                        Cantidad: item.cantidad,
+                        Total: (item.denominacion * item.cantidad).toFixed(2)
+                    };
+                }));
+                XLSX.utils.book_append_sheet(wb, wsCajaChica, `Caja Chica ${index + 1}`);
+            });
+
+            // Exportar todo
             XLSX.writeFile(wb, `${result.value}.xlsx`);
-            
-            Swal.fire('¡Guardado!', 'El archivo Excel ha sido creado.', 'success');
+            Swal.fire('¡Guardado!', 'El archivo Excel ha sido creado con todos los registros.', 'success');
         }
     });
 });
+
             document.getElementById('nuevaOperacion').addEventListener('click', function() {
                 if (currentClientId) {
                     document.getElementById('codCliente').value = currentClientId;
@@ -833,10 +890,11 @@
                 document.getElementById('billetes').value = totalBilletesMonedas.toFixed(2);
                 document.getElementById('totalRetiroCaja').value = totalRetiroBanco.toFixed(2);
     
+                // Los ingresos deben considerar los retiros como negativos
                 const ingresos = parseFloat(document.getElementById('ingresos').value) || 0;
                 const egresos = parseFloat(document.getElementById('egresos').value) || 0;
                 const total = ingresos - egresos;
-    
+
                 document.getElementById('total').value = total.toFixed(2);
                 document.getElementById('totalResumen').value = total.toFixed(2);
                 document.getElementById('totalCajaChica').value = (total - totalBilletesMonedas).toFixed(2);
